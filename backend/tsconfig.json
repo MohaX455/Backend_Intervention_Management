@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                // cible JS moderne
+    "lib": ["ES2022"],                 // librairies ES
+    "module": "NodeNext",              // ESM Node moderne
+    "moduleResolution": "NodeNext",    // résolution des modules Node
+    "rootDir": "./src",                // dossier source
+    "outDir": "./dist",                // build output
+    "strict": true,                    // toutes les vérifications TS
+    "esModuleInterop": true,           // compatibilité imports CommonJS
+    "skipLibCheck": true,              // ignore checks libs
+    "resolveJsonModule": true,         // importer json
+    "noImplicitAny": true              // interdit any implicite
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}
