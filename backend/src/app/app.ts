@@ -5,11 +5,13 @@ import cookieParser from 'cookie-parser'
 
 import { notFoundMiddleware } from "../shared/middleware/notFound.middleware.js";
 import { errorMiddleware } from "../shared/middleware/error.middleware.js";
+import { asyncHandler } from "../shared/middleware/asyncHandler.js";
 import authRoutes from "../modules/auth/auth.routes.js"
 
 export const createApp = () => {
     const app = express();
 
+    app.use(express.json());
     app.use(helmet());
     app.use(cookieParser())
     app.use(cors({
@@ -30,6 +32,7 @@ export const createApp = () => {
     app.use('/auth', authRoutes)
 
     app.use(notFoundMiddleware);
+    app.use(asyncHandler(errorMiddleware));
     app.use(errorMiddleware);
 
     return app;

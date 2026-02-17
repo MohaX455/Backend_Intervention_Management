@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
 
 interface JWTPayload {
-  userId: number;
-  roleId: number;
+  id: number
+  name: string
+  role: number
 }
 
 export class JWTService {
