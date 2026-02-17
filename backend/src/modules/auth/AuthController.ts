@@ -1,38 +1,63 @@
 import { Request, Response } from "express";
 import { AuthService } from "./AuthService.js";
-import { logger } from "../../shared/utils/logger.js";
+import { AppError } from "../../shared/errors/AppError.js";
+import {
+    AUTH_COOKIE_NAME,
+    ROLE_COOKIE_NAME,
+    DEFAULT_COOKIE_OPTIONS,
+    ROLE_COOKIE_OPTIONS,
+} from "./auth.constants.js";
 
 export class AuthController {
     constructor(private authService: AuthService) { }
 
-    // Login
+    /**
+     * Handle user login
+     */
     login = async (req: Request, res: Response) => {
-        try {
-            const { name, password } = req.body;
-            const token = await this.authService.login(name, password);
+        const { name, password } = req.body;
 
-            // Stockage dans cookie sécurisé
-            res.cookie("token", token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                maxAge: 1000 * 60 * 60 * 24 // 1 jour
-            });
-
-            res.json({ message: "Login successful" });
-        } catch (error: any) {
-            logger.error(error);
-            res.status(401).json({ message: error.message });
+        if (!name || !password) {
+            throw new AppError("Name and password required", 400);
         }
+
+        const { token, user_role } = await this.authService.login(name, password);
+
+        res.cookie(AUTH_COOKIE_NAME, token, DEFAULT_COOKIE_OPTIONS);
+        res.cookie(ROLE_COOKIE_NAME, user_role, ROLE_COOKIE_OPTIONS);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Login successful"
+        });
     };
 
-    // Logout
-    logout = (req: Request, res: Response) => {
-        res.clearCookie("token", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
+    /**
+     * Get current authenticated user info
+     */
+    me = (req: Request, res: Response) => {
+        const { user } = req;
+
+        if (!user) {
+            throw new AppError("Unauthorized", 401);
+        }
+
+        return res.status(200).json({
+            status: "success",
+            data: { user }
         });
-        res.json({ message: "Logged out successfully" });
+    }
+
+    /**
+     * Handle user logout by clearing cookies
+     */
+    logout = (_req: Request, res: Response) => {
+        res.clearCookie(AUTH_COOKIE_NAME, DEFAULT_COOKIE_OPTIONS);
+        res.clearCookie(ROLE_COOKIE_NAME, ROLE_COOKIE_OPTIONS);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Logout successful"
+        });
     }
 }
