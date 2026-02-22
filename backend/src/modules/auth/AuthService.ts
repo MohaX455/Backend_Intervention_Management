@@ -10,19 +10,19 @@ export class AuthService {
         private jwtService: JWTService
     ) { }
 
-    async login(name: string, password: string) {
-        if (!name || !password) throw new Error("Name and password required");
+    async login(email: string, password: string) {
+        if (!email || !password) throw new Error("Email and password required");
 
-        if (password.length < 8) throw new Error("Password must be at least 6 characters");
+        email = email.trim().toLowerCase();
 
-        const user: UserRow | null = await this.authRepo.findByName(name);
+        if (password.length < 8) throw new Error("Password must be at least 8 characters");
+
+        const user: UserRow | null = await this.authRepo.findByEmail(email);
         if (!user) throw new Error("Invalid credentials");
 
         const match = await this.bcryptService.compare(password, user.password);
         if (!match) throw new Error("Invalid credentials");
 
-        const token = this.jwtService.generate({ userId: user.id, roleId: user.role_id });
-
-        return { token };
+        return this.jwtService.generate({ userId: user.id, roleId: user.role_id })
     }
 }

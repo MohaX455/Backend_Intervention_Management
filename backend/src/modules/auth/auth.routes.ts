@@ -4,6 +4,7 @@ import { AuthService } from "./AuthService.js";
 import { AuthRepository } from "./AuthRepository.js";
 import { BcryptService } from "./BcryptService.js";
 import { JWTService } from "./JWTService.js";
+import { authMiddleware } from "../../shared/middleware/auth.middleware.js";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ const authController = new AuthController(authService);
 
 router.post("/login", authController.login);
 router.post("/logout", authController.logout);
+router.get('/me', authMiddleware, authController.me)
 
 export default router;

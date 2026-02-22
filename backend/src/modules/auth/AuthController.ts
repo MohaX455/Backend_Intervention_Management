@@ -8,8 +8,8 @@ export class AuthController {
     // Login
     login = async (req: Request, res: Response) => {
         try {
-            const { name, password } = req.body;
-            const token = await this.authService.login(name, password);
+            const { email, password } = req.body;
+            const token = await this.authService.login(email, password);
 
             // Stockage dans cookie sécurisé
             res.cookie("token", token, {
@@ -25,6 +25,16 @@ export class AuthController {
             res.status(401).json({ message: error.message });
         }
     };
+
+    // Me
+    me = (req: Request, res: Response) => {
+        const user = req.user
+
+        if (!user) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+        res.json({ user });
+    }
 
     // Logout
     logout = (req: Request, res: Response) => {
