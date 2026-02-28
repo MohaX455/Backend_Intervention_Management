@@ -5,7 +5,19 @@ import cookieParser from 'cookie-parser'
 
 import { notFoundMiddleware } from "../shared/middleware/notFound.middleware.js";
 import { errorMiddleware } from "../shared/middleware/error.middleware.js";
-import authRoutes from "../modules/auth/auth.routes.js"
+
+import { BcryptService } from "../shared/utils/BcryptService.js";
+import { JWTService } from "../modules/auth/JWTService.js";
+import { AuthRepository } from "../modules/auth/AuthRepository.js";
+import { AuthService } from "../modules/auth/AuthService.js";
+import { AuthController } from "../modules/auth/AuthController.js";
+import { authMiddleware } from "../shared/middleware/auth.middleware.js";
+import { UserRepository } from "../modules/users/UserRepository.js";
+import { UserService } from "../modules/users/UserService.js";
+import { UserController } from "../modules/users/UserController.js";
+import { authRoutes } from "../modules/auth/auth.routes.js";
+import { userRoutes } from "../modules/users/user.routes.js";
+import { EmailService } from "../shared/utils/email.js";
 
 export const createApp = () => {
     const app = express();
@@ -27,8 +39,30 @@ export const createApp = () => {
         res.status(200).json({ status: "OK" });
     });
 
-    // Routes
-    app.use('/auth', authRoutes)
+    // Protected route example
+    app.get('/api/protected',
+        authMiddleware,
+        (_req, res) => res.json('Welcome to the protected route')
+    )
+
+    // --- Services partagés ---
+    const bcryptService = new BcryptService();
+    const jwtService = new JWTService();
+    const emailService = new EmailService();
+
+    // --- Module AUTH ---
+    const authRepo = new AuthRepository();
+    const authService = new AuthService(authRepo, bcryptService, jwtService);
+    const authController = new AuthController(authService);
+
+    // --- Module USER ---
+    const userRepo = new UserRepository();
+    const userService = new UserService(userRepo, emailService, bcryptService);
+    const userController = new UserController(userService);
+
+    // --- Montage des routes avec injection ---
+    app.use("/api/auth", authRoutes(authController, authMiddleware));
+    app.use("/api/admin", userRoutes(userController, authMiddleware));
 
     app.use(notFoundMiddleware);
     app.use(errorMiddleware);
