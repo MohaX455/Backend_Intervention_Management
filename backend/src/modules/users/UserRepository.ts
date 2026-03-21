@@ -27,6 +27,16 @@ export class UserRepository {
         return result.insertId
     }
 
+    createClientUser = async ( connection: any, username: string, email: string, roleId: number, status: string ): Promise<number> => {
+
+        const [result] = await connection.execute(
+            `INSERT INTO users (username, email, role_id, status) VALUES (?, ?, ?, ?)`,
+            [username, email, roleId, status]
+        ) as [ResultSetHeader, any]
+
+        return result.insertId
+    }
+
     getUsers = async (): Promise<UserRow[]> => {
         const [rows] = await pool.execute<UserRow[]>(
             'SELECT id, username AS name, email, role_id, status FROM users WHERE role_id in (2, 3) ORDER BY id DESC LIMIT 7'
@@ -40,6 +50,19 @@ export class UserRepository {
             [name, email, roldeId, id]
         )
         return result.affectedRows
+    }
+
+    updateUserWithConnection = async (
+        connection: any,
+        id: number,
+        name: string,
+        email: string
+    ) => {
+
+        await connection.execute(
+            `UPDATE users SET username = ?, email = ? WHERE id = ?`,
+            [name, email, id]
+        )
     }
 
     deleteUser = async (id: number): Promise<number> => {

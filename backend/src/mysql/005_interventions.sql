@@ -6,9 +6,13 @@ CREATE TABLE interventions (
     assigned_to INT,
     title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
-    status VARCHAR(30) DEFAULT 'created',
-    priority VARCHAR(20) DEFAULT 'normal',
-    intervention_address TEXT NOT NULL,
+    status ENUM(
+        'created',
+        'assigned',
+        'in_progress',
+        'completed',
+        'cancelled'
+    ) priority ENUM('low', 'normal', 'high', 'urgent') intervention_address TEXT NOT NULL,
     latitude DECIMAL(9, 6),
     longitude DECIMAL(9, 6),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

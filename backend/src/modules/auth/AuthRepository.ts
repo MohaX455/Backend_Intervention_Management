@@ -6,7 +6,7 @@ import { ResultSetHeader } from "mysql2";
 export class AuthRepository {
     findByEmail = async (email: string): Promise<UserRow | null> => {
         const [rows] = await pool.execute<UserRow[]>(
-            'SELECT id, username AS name, email, password, role_id FROM users WHERE email = ?',
+            'SELECT id, username AS name, email, password, role_id, status FROM users WHERE email = ?',
             [email]
         )
         return rows[0] || null

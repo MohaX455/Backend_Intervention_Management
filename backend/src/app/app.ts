@@ -12,12 +12,18 @@ import { AuthRepository } from "../modules/auth/AuthRepository.js";
 import { AuthService } from "../modules/auth/AuthService.js";
 import { AuthController } from "../modules/auth/AuthController.js";
 import { authMiddleware } from "../shared/middleware/auth.middleware.js";
+
 import { UserRepository } from "../modules/users/UserRepository.js";
 import { UserService } from "../modules/users/UserService.js";
 import { UserController } from "../modules/users/UserController.js";
 import { authRoutes } from "../modules/auth/auth.routes.js";
 import { userRoutes } from "../modules/users/user.routes.js";
 import { EmailService } from "../shared/utils/email.js";
+
+import { ClientRepository } from "../modules/clients/ClientRepository.js";
+import { ClientService } from "../modules/clients/ClientService.js";
+import { ClientController } from "../modules/clients/ClientController.js";
+import { clientRoutes } from "../modules/clients/client.routes.js";
 
 export const createApp = () => {
     const app = express();
@@ -57,11 +63,16 @@ export const createApp = () => {
 
     // --- Module USER ---
     const userRepo = new UserRepository();
-    const userService = new UserService(userRepo, emailService, bcryptService);
+    const userService = new UserService(userRepo, emailService);
     const userController = new UserController(userService);
+    // --- Module CLIENT ---
+    const clientRepo = new ClientRepository();
+    const clientService = new ClientService(clientRepo, userRepo);
+    const clientController = new ClientController(clientService);
 
     // --- Montage des routes avec injection ---
     app.use("/api/auth", authRoutes(authController, authMiddleware));
+    app.use("/api/admin", clientRoutes(clientController, authMiddleware));
     app.use("/api/admin", userRoutes(userController, authMiddleware));
 
     app.use(notFoundMiddleware);
