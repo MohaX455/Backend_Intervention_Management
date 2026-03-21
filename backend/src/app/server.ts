@@ -5,14 +5,14 @@ import { logger } from "../shared/utils/logger.js";
 import { initSocket } from "../socket/socket.js";
 
 const startServer = async (): Promise<void> => {
-  await initializeDatabase();
+    await initializeDatabase();
 
-  const app = createApp();
-  const server = app.listen(env.port, () => {
-    logger.info(`Server running on port ${env.port}`);
-  });
+    const app = createApp();
+    const server = app.listen(env.port, () => {
+        logger.info(`Server running on port ${env.port}`);
+    });
 
-  initSocket(server);
+    initSocket(server);
 };
 
 startServer();

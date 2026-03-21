@@ -1,12 +1,8 @@
 -- Table: clients
 CREATE TABLE clients (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    client_id INT NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
+    user_id INT NOT NULL UNIQUE,
     phone VARCHAR(30) NOT NULL,
-    email VARCHAR(100),
     address TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (client_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );

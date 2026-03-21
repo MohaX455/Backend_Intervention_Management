@@ -6,5 +6,7 @@ CREATE TABLE technician_profile (
     skills TEXT,
     phone VARCHAR(20),
     availability BOOLEAN DEFAULT TRUE,
-    CONSTRAINT fk_technician_user FOREIGN KEY (technician_id) REFERENCES users(id)
+    CONSTRAINT fk_technician_user FOREIGN KEY (technician_id) REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 );

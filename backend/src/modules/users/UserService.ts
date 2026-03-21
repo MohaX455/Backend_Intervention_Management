@@ -9,7 +9,6 @@ export class UserService {
     constructor(
         private userRepository: UserRepository,
         private emailService: EmailService,
-        private bcryptService: BcryptService
     ) { }
 
     // Create User

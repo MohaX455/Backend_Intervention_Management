@@ -10,6 +10,7 @@ export class AuthService {
         private jwtService: JWTService
     ) { }
 
+    // Login
     async login(email: string, password: string) {
         if (!email || !password) throw new Error("Email and password required");
 
@@ -30,6 +31,7 @@ export class AuthService {
         return { GeneratedToken, roleId: user.role_id };
     }
 
+    // Login
     setPassword = async (token: string, password: string): Promise<void> => {
         if (!token || !password) {
             throw new Error('Token and password are required')
