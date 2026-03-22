@@ -1,7 +1,7 @@
 import express from "express";
 import helmet from "helmet";
 import cors from "cors";
-import cookieParser from 'cookie-parser'
+import cookieParser from 'cookie-parser';
 
 import { notFoundMiddleware } from "../shared/middleware/notFound.middleware.js";
 import { errorMiddleware } from "../shared/middleware/error.middleware.js";
@@ -65,6 +65,7 @@ export const createApp = () => {
     const userRepo = new UserRepository();
     const userService = new UserService(userRepo, emailService);
     const userController = new UserController(userService);
+
     // --- Module CLIENT ---
     const clientRepo = new ClientRepository();
     const clientService = new ClientService(clientRepo, userRepo);
@@ -72,7 +73,7 @@ export const createApp = () => {
 
     // --- Montage des routes avec injection ---
     app.use("/api/auth", authRoutes(authController, authMiddleware));
-    app.use("/api/admin", clientRoutes(clientController, authMiddleware));
+    app.use("/api/secretary", clientRoutes(clientController, authMiddleware));
     app.use("/api/admin", userRoutes(userController, authMiddleware));
 
     app.use(notFoundMiddleware);

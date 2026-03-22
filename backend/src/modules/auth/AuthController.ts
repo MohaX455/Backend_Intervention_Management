@@ -14,8 +14,8 @@ export class AuthController {
             // Stockage dans cookie sécurisé
             res.cookie("token", GeneratedToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
+                secure: false,
+                sameSite: "lax",
                 maxAge: 1000 * 60 * 60 * 24 // 1 jour
             });
 
@@ -36,7 +36,7 @@ export class AuthController {
     // Me
     me = (req: Request, res: Response) => {
         const user = req.user
-
+        console.log(user)
         if (!user) {
             return res.status(401).json({ message: "Unauthorized" });
         }

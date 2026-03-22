@@ -41,7 +41,7 @@ export class ClientService {
 
             await this.clientRepo.createClient( connection, userId, clientType, phone, address )
 
-            const data = { userId, name, email: lowerEmail, status }
+            const data = { userId, name, email: lowerEmail, phone, clientType, address, status }
 
             await connection.commit()
 
@@ -57,6 +57,10 @@ export class ClientService {
 
     getClients = async () => {
         return await this.clientRepo.getClients()
+    }
+
+    getRecentClients = async (limit: number) => {
+        return await this.clientRepo.getClients(limit)
     }
 
     updateClient = async (
