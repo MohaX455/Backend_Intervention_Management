@@ -17,15 +17,20 @@ export class ClientRepository {
         ) as [ResultSetHeader, any];
     }
 
-    getClients = async () => {
-        const [rows] = await pool.execute(
-            `SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address
-             FROM clients c
-             JOIN users u ON u.id = c.user_id
-             ORDER BY u.id DESC`
-        )
-        return rows
-    }
+    getClients = async (limit?: number) => {
+        let query = `
+        SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address
+        FROM clients c
+        JOIN users u ON u.id = c.user_id
+        ORDER BY u.id DESC
+        `;
+
+        if (limit && !isNaN(limit) && limit > 0) {
+            query += ` LIMIT ${Number(limit)}`;
+        }
+        const [rows] = await pool.execute(query);
+        return rows;
+    };
 
     findClientById = async (id: number) => {
         const [rows]: any = await pool.execute(
