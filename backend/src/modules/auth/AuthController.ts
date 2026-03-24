@@ -21,12 +21,16 @@ export class AuthController {
 
             // Stokage cookie pour redirection côté client
             res.cookie("user_role", roleId, {
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
+                httpOnly: false,
+                secure: false,
+                sameSite: "lax",
                 maxAge: 1000 * 60 * 60 * 24 // 1 jour
             });
 
-            res.json({ message: "Login successful" });
+            res.json({
+                message: "Login successful",
+                roleId
+            });
         } catch (error: any) {
             logger.error(error);
             res.status(401).json({ message: error.message });
@@ -36,7 +40,7 @@ export class AuthController {
     // Me
     me = (req: Request, res: Response) => {
         const user = req.user
-        console.log(user)
+
         if (!user) {
             return res.status(401).json({ message: "Unauthorized" });
         }
@@ -48,12 +52,12 @@ export class AuthController {
         res.clearCookie("token", {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
+            sameSite: "lax"
         });
 
         res.clearCookie("user_role", {
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "lax",
         });
         res.json({ message: "Logged out successfully" });
     }
@@ -66,6 +70,23 @@ export class AuthController {
         } catch (err) {
             logger.error(err);
             res.status(401).json({ message: err || 'Failed to set password' });
+        }
+    }
+
+    // Update profile
+    updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+
+            const { email, password } = req.body;
+            await this.authService.updateProfile(user.id, email, password);
+            res.json({ message: "Profile updated successfully" });
+        } catch (error: any) {
+            logger.error(error);
+            res.status(400).json({ message: error.message });
         }
     }
 }

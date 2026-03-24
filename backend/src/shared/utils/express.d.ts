@@ -1,12 +1,9 @@
-import { JwtPayload } from "jsonwebtoken";
+import { UserRow } from "../../types/user.types.js";
 
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload & {
-        userId: number;
-        roleId: number;
-      };
+      user?: UserRow;
     }
   }
 }

@@ -50,4 +50,30 @@ export class AuthService {
 
         await this.authRepo.setPassword(user.id, hashedPassword)
     }
+
+    // Update profile
+    updateProfile = async (userId: number, email?: string, password?: string): Promise<void> => {
+        if (!email && !password) {
+            throw new Error('At least one field (email or password) must be provided');
+        }
+
+        if (email) {
+            email = email.trim().toLowerCase();
+            // Check if email is already taken by another user
+            const existingUser = await this.authRepo.findByEmail(email);
+            if (existingUser && existingUser.id !== userId) {
+                throw new Error('Email already in use');
+            }
+        }
+
+        let hashedPassword;
+        if (password) {
+            if (password.length < 8) {
+                throw new Error('Password must be at least 8 characters');
+            }
+            hashedPassword = await this.bcryptService.hash(password);
+        }
+
+        await this.authRepo.updateProfile(userId, email, hashedPassword);
+    }
 }

@@ -6,20 +6,20 @@ export class ClientRepository {
     createClient = async (
         connection: any,
         userId: number,
-        clientType: 'individual' | 'company',
+        client_type: 'individual' | 'company',
         phone: string,
         address: string
     ): Promise<void> => {
 
         const [result] = await connection.execute(
             `INSERT INTO clients (user_id, client_type, phone, address) VALUES (?, ?, ?, ?)`,
-            [userId, clientType, phone, address]
+            [userId, client_type, phone, address]
         ) as [ResultSetHeader, any];
     }
 
     getClients = async (limit?: number) => {
         let query = `
-        SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address
+        SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address
         FROM clients c
         JOIN users u ON u.id = c.user_id
         ORDER BY u.id DESC
@@ -32,9 +32,9 @@ export class ClientRepository {
         return rows;
     };
 
-    findClientById = async (id: number) => {
+    getClientById = async (id: number) => {
         const [rows]: any = await pool.execute(
-            `SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address
+            `SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address
              FROM clients c
              JOIN users u ON u.id = c.user_id
              WHERE u.id = ?`,
@@ -43,25 +43,26 @@ export class ClientRepository {
         return rows[0] || null
     }
 
+
     updateClientWithConnection = async (
         connection: any,
         id: number,
-        clientType: string,
+        client_type: string,
         phone: string,
         address: string
     ) => {
 
         await connection.execute(
             `UPDATE clients SET client_type = ?, phone = ?, address = ? WHERE user_id = ?`,
-            [clientType, phone, address, id]
+            [client_type, phone, address, id]
         )
     }
 
-    deleteClient = async (id: number) => {
-        const [result] = await pool.execute<ResultSetHeader>(
-            `UPDATE users SET status = 'Inactive' WHERE id = ?`,
+    deleteClientWithConnection = async (connection: any, id: number) => {
+        const [result] = await connection.execute(
+            `DELETE FROM clients WHERE user_id = ?`,
             [id]
-        )
+        ) as [ResultSetHeader, any];
         return result.affectedRows
     }
 }

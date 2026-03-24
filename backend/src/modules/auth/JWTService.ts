@@ -6,13 +6,17 @@ interface JWTPayload {
   roleId: number;
 }
 
+interface JWTConfig {
+  secret: string;
+  expiresIn: string;
+}
+
 export class JWTService {
+  constructor(private config: JWTConfig) {}
+
   generate(payload: JWTPayload): string {
-    if (!process.env.JWT_SECRET || !process.env.JWT_EXPIRES_IN) {
-      throw new Error("JWT_SECRET and JWT_EXPIRES_IN must be defined");
-    }
-    return (jwt.sign as any)(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN
+    return (jwt.sign as any)(payload, this.config.secret, {
+      expiresIn: this.config.expiresIn
     });
   }
 }

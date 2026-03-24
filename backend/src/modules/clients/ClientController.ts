@@ -6,12 +6,12 @@ export class ClientController {
 
     createClient = async (req: Request, res: Response) => {
         try {
-            const { name, email, clientType, phone, address } = req.body
+            const { name, email, client_type, phone, address } = req.body
 
             const data = await this.clientService.createClient(
                 name,
                 email,
-                clientType,
+                client_type,
                 phone,
                 address
             )
@@ -38,6 +38,17 @@ export class ClientController {
         const clients = await this.clientService.getRecentClients(limit);
         res.json(clients);
     };
+
+    getClientById = async (req: Request, res: Response) => {
+        const id = Number(req.params.id)
+        const client = await this.clientService.getClientById(id)
+
+        if (!client) {
+            return res.status(404).json({ message: 'Client not found' })
+        }
+
+        res.json(client)
+    }
 
     updateClient = async (req: Request, res: Response) => {
         const id = Number(req.params.id)

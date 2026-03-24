@@ -11,6 +11,7 @@ export const clientRoutes = (
     router.post("/clients", authMiddleware, clientController.createClient)
     router.get("/clients", authMiddleware, clientController.getClients)
     router.get("/clients/recent", authMiddleware, clientController.getRecentClients)
+    router.get("/clients/:id", authMiddleware, clientController.getClientById)
     router.put("/clients/:id", authMiddleware, clientController.updateClient)
     router.delete("/clients/:id", authMiddleware, clientController.deleteClient)
 

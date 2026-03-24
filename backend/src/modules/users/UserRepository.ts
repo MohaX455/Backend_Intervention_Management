@@ -66,10 +66,18 @@ export class UserRepository {
     }
 
     deleteUser = async (id: number): Promise<number> => {
-        const [result] = await pool.execute<ResultSetHeader>(
+        const [result] = await pool.execute(
             'DELETE FROM users WHERE id = ?',
             [id]
-        )
+        ) as [ResultSetHeader, any];
+        return result.affectedRows
+    }
+    
+    deleteUserWithConnection = async (connection: any, id: number) => {
+        const [result] = await connection.execute(
+            `DELETE FROM users WHERE id = ?`,
+            [id]
+        ) as [ResultSetHeader, any];
         return result.affectedRows
     }
 }

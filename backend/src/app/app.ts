@@ -2,6 +2,7 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from 'cookie-parser';
+import { env } from "../config/env/env.config.js";
 
 import { notFoundMiddleware } from "../shared/middleware/notFound.middleware.js";
 import { errorMiddleware } from "../shared/middleware/error.middleware.js";
@@ -24,6 +25,11 @@ import { ClientRepository } from "../modules/clients/ClientRepository.js";
 import { ClientService } from "../modules/clients/ClientService.js";
 import { ClientController } from "../modules/clients/ClientController.js";
 import { clientRoutes } from "../modules/clients/client.routes.js";
+
+import { InterventionRepository } from "../modules/interventions/IntRepository.js";
+import { InterventionService } from "../modules/interventions/IntService.js";
+import { InterventionController } from "../modules/interventions/IntController.js";
+import { interventionRoutes } from "../modules/interventions/int.routes.js";
 
 export const createApp = () => {
     const app = express();
@@ -53,7 +59,7 @@ export const createApp = () => {
 
     // --- Services partagés ---
     const bcryptService = new BcryptService();
-    const jwtService = new JWTService();
+    const jwtService = new JWTService(env.jwt);
     const emailService = new EmailService();
 
     // --- Module AUTH ---
@@ -71,10 +77,17 @@ export const createApp = () => {
     const clientService = new ClientService(clientRepo, userRepo);
     const clientController = new ClientController(clientService);
 
+    // --- Module INTERVENTIONS ---
+    const interventionRepo = new InterventionRepository();
+    const interventionService = new InterventionService(interventionRepo);
+    const interventionController = new InterventionController(interventionService);
+
+
     // --- Montage des routes avec injection ---
     app.use("/api/auth", authRoutes(authController, authMiddleware));
     app.use("/api/secretary", clientRoutes(clientController, authMiddleware));
     app.use("/api/admin", userRoutes(userController, authMiddleware));
+    app.use("/api/interventions", interventionRoutes(interventionController, authMiddleware));
 
     app.use(notFoundMiddleware);
     app.use(errorMiddleware);

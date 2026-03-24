@@ -12,12 +12,12 @@ export class ClientService {
     createClient = async (
         name: string,
         email: string,
-        clientType: 'individual' | 'company',
+        client_type: 'individual' | 'company',
         phone: string,
         address: string
     ) => {
 
-        if (!name || !email || !clientType || !phone || !address) {
+        if (!name || !email || !client_type || !phone || !address) {
             throw new Error('All fields are required')
         }
 
@@ -37,11 +37,11 @@ export class ClientService {
             await connection.beginTransaction()
 
             // ✅ maintenant via repo
-            const userId = await this.userRepo.createClientUser( connection, name, lowerEmail, clientRoleId, status )
+            const userId = await this.userRepo.createClientUser(connection, name, lowerEmail, clientRoleId, status)
 
-            await this.clientRepo.createClient( connection, userId, clientType, phone, address )
+            await this.clientRepo.createClient(connection, userId, client_type, phone, address)
 
-            const data = { userId, name, email: lowerEmail, phone, clientType, address, status }
+            const data = { userId, name, email: lowerEmail, phone, client_type, address, status }
 
             await connection.commit()
 
@@ -63,11 +63,15 @@ export class ClientService {
         return await this.clientRepo.getClients(limit)
     }
 
+    getClientById = async (id: number) => {
+        return await this.clientRepo.getClientById(id)
+    }
+
     updateClient = async (
         id: number,
         name: string,
         email: string,
-        clientType: string,
+        client_type: string,
         phone: string,
         address: string
     ) => {
@@ -77,9 +81,9 @@ export class ClientService {
         try {
             await connection.beginTransaction()
 
-            await this.userRepo.updateUserWithConnection( connection, id, name, email )
+            await this.userRepo.updateUserWithConnection(connection, id, name, email)
 
-            await this.clientRepo.updateClientWithConnection( connection, id, clientType, phone, address )
+            await this.clientRepo.updateClientWithConnection(connection, id, client_type, phone, address)
 
             await connection.commit()
 
@@ -92,6 +96,17 @@ export class ClientService {
     }
 
     deleteClient = async (id: number) => {
-        await this.clientRepo.deleteClient(id)
+        const connection = await pool.getConnection()
+        try {
+            await connection.beginTransaction()
+            await this.clientRepo.deleteClientWithConnection(connection, id)
+            await this.userRepo.deleteUserWithConnection(connection, id)
+            await connection.commit()
+        } catch (err) {
+            await connection.rollback()
+            throw err
+        } finally {
+            connection.release()
+        }
     }
 }
