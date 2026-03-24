@@ -12,6 +12,14 @@ export class AuthRepository {
         return rows[0] || null
     }
 
+    findById = async (id: number): Promise<UserRow | null> => {
+        const [rows] = await pool.execute<UserRow[]>(
+            'SELECT id, username AS name, email, role_id, status FROM users WHERE id = ?',
+            [id]
+        )
+        return rows[0] || null
+    }
+
     findByToken = async (token: string): Promise<UserRow | null> => {
         const [rows] = await pool.execute<UserRow[]>(
             'SELECT id, invitation_expires_at FROM users WHERE invitation_token = ?',
@@ -26,5 +34,31 @@ export class AuthRepository {
             [password, userId]
         )
         return result.affectedRows
+    }
+
+    updateProfile = async (userId: number, email?: string, password?: string): Promise<number> => {
+        let query = 'UPDATE users SET ';
+        const params: any[] = [];
+        const updates: string[] = [];
+
+        if (email) {
+            updates.push('email = ?');
+            params.push(email.trim().toLowerCase());
+        }
+
+        if (password) {
+            updates.push('password = ?');
+            params.push(password);
+        }
+
+        if (updates.length === 0) {
+            throw new Error('No fields to update');
+        }
+
+        query += updates.join(', ') + ' WHERE id = ?';
+        params.push(userId);
+
+        const [result] = await pool.execute<ResultSetHeader>(query, params);
+        return result.affectedRows;
     }
 }

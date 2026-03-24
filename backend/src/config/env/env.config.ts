@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-
 dotenv.config();
 
 const requiredEnvVars = [
@@ -7,7 +6,9 @@ const requiredEnvVars = [
   "DB_HOST",
   "DB_USER",
   "DB_PASSWORD",
-  "DB_NAME"
+  "DB_NAME",
+  "JWT_SECRET",
+  "JWT_EXPIRES_IN"
 ] as const;
 
 requiredEnvVars.forEach((key) => {
@@ -23,5 +24,9 @@ export const env = {
     user: process.env.DB_USER!,
     password: process.env.DB_PASSWORD!,
     database: process.env.DB_NAME!
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET!,
+    expiresIn: process.env.JWT_EXPIRES_IN!
   }
 };

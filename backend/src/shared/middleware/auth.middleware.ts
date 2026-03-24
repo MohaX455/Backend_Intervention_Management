@@ -1,7 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { AuthRepository } from "../../modules/auth/AuthRepository.js";
 
-export const authMiddleware = (
+const authRepo = new AuthRepository();
+
+export const authMiddleware = async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -18,7 +21,13 @@ export const authMiddleware = (
             process.env.JWT_SECRET as string
         ) as JwtPayload & { userId: number; roleId: number };
 
-        req.user = decoded;
+        // Récupérer les informations complètes de l'utilisateur
+        const user = await authRepo.findById(decoded.userId);
+        if (!user) {
+            return res.status(401).json({ message: "User not found" });
+        }
+
+        req.user = user;
         next();
     } catch (error: any) {
         if (error.name === "TokenExpiredError") {
