@@ -8,18 +8,19 @@ export class ClientRepository {
         userId: number,
         client_type: 'individual' | 'company',
         phone: string,
-        address: string
+        address: string,
+        createdBySecretaryId: number
     ): Promise<void> => {
 
         const [result] = await connection.execute(
-            `INSERT INTO clients (user_id, client_type, phone, address) VALUES (?, ?, ?, ?)`,
-            [userId, client_type, phone, address]
+            `INSERT INTO clients (user_id, client_type, phone, address, created_by) VALUES (?, ?, ?, ?, ?)`,
+            [userId, client_type, phone, address, createdBySecretaryId]
         ) as [ResultSetHeader, any];
     }
 
     getClients = async (limit?: number) => {
         let query = `
-        SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address
+        SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address, c.created_by
         FROM clients c
         JOIN users u ON u.id = c.user_id
         ORDER BY u.id DESC
@@ -34,7 +35,7 @@ export class ClientRepository {
 
     getClientById = async (id: number) => {
         const [rows]: any = await pool.execute(
-            `SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address
+            `SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address, c.created_by
              FROM clients c
              JOIN users u ON u.id = c.user_id
              WHERE u.id = ?`,

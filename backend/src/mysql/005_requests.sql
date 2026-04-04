@@ -1,20 +1,19 @@
--- Table: interventions
+-- Table: demandeInterventions
 
-CREATE TABLE IF NOT EXISTS interventions (
+DROP TABLE IF EXISTS interventions;
+
+CREATE TABLE IF NOT EXISTS demandeInterventions (
     id INT AUTO_INCREMENT PRIMARY KEY,
 
     client_id INT NOT NULL,
-    created_by INT NOT NULL,
-    assigned_to INT NULL,
+    created_by INT NOT NULL DEFAULT 1,
 
     title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
 
     status ENUM(
         'created',
-        'assigned',
-        'in_progress',
-        'completed',
+        'validated',
         'cancelled'
     ) NOT NULL DEFAULT 'created',
 
@@ -29,12 +28,6 @@ CREATE TABLE IF NOT EXISTS interventions (
 
     latitude DECIMAL(9,6) NULL,
     longitude DECIMAL(9,6) NULL,
-
-    scheduled_start DATETIME NULL,
-    scheduled_end DATETIME NULL,
-
-    started_at DATETIME NULL,
-    completed_at DATETIME NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
