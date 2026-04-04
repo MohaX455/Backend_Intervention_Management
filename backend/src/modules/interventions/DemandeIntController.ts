@@ -1,23 +1,21 @@
-// modules/interventions/InterventionController.ts
+// modules/interventions/DemandeIntController.ts
 import { Request, Response, NextFunction } from "express";
-import { InterventionService } from "./IntService.js";
+import { DemandeIntService } from "./DemandeIntService.js";
 import { logger } from "../../shared/utils/logger.js";
 
-export class InterventionController {
-    constructor(private interventionService: InterventionService) { }
+export class DemandeIntController {
+    constructor(private interventionService: DemandeIntService) { }
 
     create = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const {
                 clientId, createdBy, title, description, priority,
-                interventionAddress, latitude, longitude, scheduledStart, scheduledEnd
+                interventionAddress, latitude, longitude
             } = req.body;
 
             const id = await this.interventionService.createIntervention(
                 clientId, createdBy, title, description, priority,
-                interventionAddress, latitude, longitude,
-                scheduledStart ? new Date(scheduledStart) : null,
-                scheduledEnd ? new Date(scheduledEnd) : null
+                interventionAddress, latitude, longitude
             );
             res.status(201).json({ message: "Intervention created", id });
         } catch (err: any) {
@@ -30,6 +28,16 @@ export class InterventionController {
         try {
             const interventions = await this.interventionService.getAllInterventions();
             res.status(200).json(interventions);
+        } catch (err: any) {
+            logger.error(err);
+            res.status(400).json({ message: err.message });
+        }
+    }
+
+    getAllAssignments = async (_req: Request, res: Response) => {
+        try {
+            const assignments = await this.interventionService.getAllAssignments();
+            res.status(200).json(assignments);
         } catch (err: any) {
             logger.error(err);
             res.status(400).json({ message: err.message });
@@ -102,14 +110,12 @@ export class InterventionController {
             const interventionId = Number(req.params.id);
             const {
                 clientId, title, description, priority,
-                interventionAddress, latitude, longitude, scheduledStart, scheduledEnd
+                interventionAddress, latitude, longitude
             } = req.body;
 
             await this.interventionService.updateIntervention(
                 interventionId, clientId, title, description, priority,
-                interventionAddress, latitude, longitude,
-                scheduledStart ? new Date(scheduledStart) : null,
-                scheduledEnd ? new Date(scheduledEnd) : null
+                interventionAddress, latitude, longitude
             );
             res.status(200).json({ message: "Intervention updated" });
         } catch (err: any) {
@@ -123,6 +129,26 @@ export class InterventionController {
             const interventionId = Number(req.params.id);
             await this.interventionService.deleteIntervention(interventionId);
             res.status(200).json({ message: "Intervention deleted" });
+        } catch (err: any) {
+            logger.error(err);
+            res.status(400).json({ message: err.message });
+        }
+    }
+
+    getStats = async (_req: Request, res: Response) => {
+        try {
+            const stats = await this.interventionService.getStats();
+            res.status(200).json(stats);
+        } catch (err: any) {
+            logger.error(err);
+            res.status(400).json({ message: err.message });
+        }
+    }
+
+    getAvailableTechnicians = async (_req: Request, res: Response) => {
+        try {
+            const technicians = await this.interventionService.getAvailableTechnicians();
+            res.status(200).json(technicians);
         } catch (err: any) {
             logger.error(err);
             res.status(400).json({ message: err.message });

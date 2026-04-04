@@ -5,35 +5,33 @@ import { logger } from "../../shared/utils/logger.js";
 export class AuthController {
     constructor(private authService: AuthService) { }
 
-    // Login
     login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
-            const { GeneratedToken, roleId } = await this.authService.login(email, password);
 
-            // Stockage dans cookie sécurisé
-            res.cookie("token", GeneratedToken, {
+            if (!email || !password) {
+                return res.status(400).json({ message: "Email and password are required" });
+            }
+
+            const { token, roleId } = await this.authService.login(email, password);
+
+            const cookieConfig = {
                 httpOnly: true,
-                secure: false,
-                sameSite: "lax",
-                maxAge: 1000 * 60 * 60 * 24 // 1 jour
-            });
+                sameSite: "lax" as const,
+                maxAge: 86400000 // 24 hours in ms
+            };
 
-            // Stokage cookie pour redirection côté client
-            res.cookie("user_role", roleId, {
-                httpOnly: false,
-                secure: false,
-                sameSite: "lax",
-                maxAge: 1000 * 60 * 60 * 24 // 1 jour
-            });
+            res.cookie("token", token, { ...cookieConfig, secure: false });
+            res.cookie("user_role", roleId, { ...cookieConfig, httpOnly: false, secure: false });
 
-            res.json({
+            res.status(200).json({
                 message: "Login successful",
                 roleId
             });
         } catch (error: any) {
-            logger.error(error);
-            res.status(401).json({ message: error.message });
+            logger.error("Login error:", error.message);
+            const statusCode = error.message.includes("not active") ? 403 : 401;
+            res.status(statusCode).json({ message: error.message || "Authentication failed" });
         }
     };
 
@@ -49,27 +47,31 @@ export class AuthController {
 
     // Logout
     logout = (req: Request, res: Response) => {
-        res.clearCookie("token", {
+        const cookieConfig = {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax"
-        });
+            sameSite: "lax" as const,
+            secure: false
+        };
 
-        res.clearCookie("user_role", {
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-        });
-        res.json({ message: "Logged out successfully" });
+        res.clearCookie("token", cookieConfig);
+        res.clearCookie("user_role", { ...cookieConfig, httpOnly: false });
+
+        res.status(200).json({ message: "Logged out successfully" });
     }
 
     setPassword = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { token, password } = req.body
-            await this.authService.setPassword(token, password)
-            res.status(200).json({ message: 'Password set successfully' })
-        } catch (err) {
-            logger.error(err);
-            res.status(401).json({ message: err || 'Failed to set password' });
+            const { token, password } = req.body;
+
+            if (!token || !password) {
+                return res.status(400).json({ message: "Token and password are required" });
+            }
+
+            await this.authService.setPassword(token, password);
+            res.status(200).json({ message: "Password set successfully" });
+        } catch (error: any) {
+            logger.error("Set password error:", error.message);
+            res.status(400).json({ message: error.message || "Failed to set password" });
         }
     }
 

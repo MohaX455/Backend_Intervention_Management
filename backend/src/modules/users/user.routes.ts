@@ -6,6 +6,7 @@ export const userRoutes = (userController: UserController, authMiddleware: Reque
     router.post("/users", authMiddleware, userController.createUser)
     router.get('/users', authMiddleware, userController.getUsers)
     router.put('/users/:id', authMiddleware, userController.updateUser)
+    router.patch('/users/:id/status', authMiddleware, userController.updateUserStatus)
     router.delete('/users/:id', authMiddleware, userController.deleteUser)
     return router;
 };

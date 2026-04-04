@@ -1,7 +1,7 @@
 import { Router, RequestHandler } from "express";
-import { InterventionController } from "./IntController.js";
+import { DemandeIntController } from "./DemandeIntController.js";
 
-export const interventionRoutes = (controller: InterventionController, authMiddleware: RequestHandler) => {
+export const demandeIntRoutes = (controller: DemandeIntController, authMiddleware: RequestHandler) => {
     const router = Router();
 
     router.post("/", authMiddleware, controller.create);
@@ -10,9 +10,6 @@ export const interventionRoutes = (controller: InterventionController, authMiddl
     router.get("/:id", authMiddleware, controller.getOne);
     router.put("/:id", authMiddleware, controller.update);
     router.delete("/:id", authMiddleware, controller.delete);
-    router.patch("/:id/assign", authMiddleware, controller.assignTechnician);
-    router.patch("/:id/start", authMiddleware, controller.startIntervention);
-    router.patch("/:id/complete", authMiddleware, controller.completeIntervention);
 
     return router;
 }
