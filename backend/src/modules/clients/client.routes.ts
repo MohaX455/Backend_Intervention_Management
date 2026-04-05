@@ -8,12 +8,12 @@ export const clientRoutes = (
 
     const router = Router();
 
-    router.post("/clients", authMiddleware, clientController.createClient)
-    router.get("/clients", authMiddleware, clientController.getClients)
-    router.get("/clients/recent", authMiddleware, clientController.getRecentClients)
-    router.get("/clients/:id", authMiddleware, clientController.getClientById)
-    router.put("/clients/:id", authMiddleware, clientController.updateClient)
-    router.delete("/clients/:id", authMiddleware, clientController.deleteClient)
+    router.post("/", authMiddleware, clientController.createClient)
+    router.get("/", authMiddleware, clientController.getClients)
+    router.get("/recent", authMiddleware, clientController.getRecentClients)
+    router.get("/:id", authMiddleware, clientController.getClientById)
+    router.put("/:id", authMiddleware, clientController.updateClient)
+    router.delete("/:id", authMiddleware, clientController.deleteClient)
 
     return router;
 };
