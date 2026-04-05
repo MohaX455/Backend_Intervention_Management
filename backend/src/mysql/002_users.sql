@@ -5,7 +5,7 @@ CREATE TABLE users (
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NULL,
     role_id INT NOT NULL,
-    status ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
+    status ENUM('Active', 'Inactive', 'Invited') NOT NULL DEFAULT 'Active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles(id)

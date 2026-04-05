@@ -13,16 +13,16 @@ export class UserRepository {
 
     findById = async (id: number): Promise<UserRow | null> => {
         const [rows] = await pool.execute<UserRow[]>(
-            'SELECT id, username AS name, email, role_id, status FROM users WHERE id = ?',
+            'SELECT id, username AS name, email, role_id, status, invitation_token, invitation_expires_at FROM users WHERE id = ?',
             [id]
         )
         return rows[0] || null
     }
 
-    createUser = async (name: string, email: string, roleId: number, invitationToken: string, invitationExpiresAt: Date): Promise<number> => {
+    createUser = async (name: string, email: string, roleId: number, invitationToken: string, invitationExpiresAt: Date, status = 'Invited'): Promise<number> => {
         const [result] = await pool.execute<ResultSetHeader>(
             'INSERT INTO users (username, email, role_id, status, invitation_token, invitation_expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-            [name, email, roleId, 'active', invitationToken, invitationExpiresAt]
+            [name, email, roleId, status, invitationToken, invitationExpiresAt]
         )
         return result.insertId
     }
