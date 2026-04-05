@@ -10,7 +10,7 @@ export const authRoutes = (
     router.post("/login", authController.login);
     router.post("/logout", authController.logout);
     router.get('/me', authMiddleware, authController.me);
-    router.put('/me', authMiddleware, authController.updateProfile);
+    router.put('/update-password', authMiddleware, authController.updateProfile);
     router.post('/set-password', authController.setPassword)
 
     return router;

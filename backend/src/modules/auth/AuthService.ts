@@ -10,25 +10,34 @@ export class AuthService {
         private jwtService: JWTService
     ) { }
 
-    // Login
     async login(email: string, password: string) {
-        if (!email || !password) throw new Error("Email and password required");
+        if (!email || !password) {
+            throw new Error("Email and password are required");
+        }
 
         email = email.trim().toLowerCase();
 
-        if (password.length < 8) throw new Error("Password must be at least 8 characters");
-
+        // Find user by email
         const user: UserRow | null = await this.authRepo.findByEmail(email);
-        if (!user) throw new Error("Invalid credentials");
+        if (!user) {
+            throw new Error("Invalid email or password");
+        }
 
-        if (user.status !== "Active") throw new Error("Account not active");
+        // Check account status
+        if (user.status !== "Active") {
+            throw new Error("Account not active. Please contact support");
+        }
 
-        const match = await this.bcryptService.compare(password, user.password);
-        if (!match) throw new Error("Invalid credentials");
+        // Verify password
+        const isPasswordValid = await this.bcryptService.compare(password, user.password);
+        if (!isPasswordValid) {
+            throw new Error("Invalid email or password");
+        }
 
-        const GeneratedToken = this.jwtService.generate({ userId: user.id, userName: user.name, roleId: user.role_id })
+        // Generate token
+        const token = this.jwtService.generate({ userId: user.id, userName: user.name, roleId: user.role_id });
 
-        return { GeneratedToken, roleId: user.role_id };
+        return { token, roleId: user.role_id };
     }
 
     // Login
@@ -52,28 +61,17 @@ export class AuthService {
     }
 
     // Update profile
-    updateProfile = async (userId: number, email?: string, password?: string): Promise<void> => {
-        if (!email && !password) {
-            throw new Error('At least one field (email or password) must be provided');
-        }
-
-        if (email) {
-            email = email.trim().toLowerCase();
-            // Check if email is already taken by another user
-            const existingUser = await this.authRepo.findByEmail(email);
-            if (existingUser && existingUser.id !== userId) {
-                throw new Error('Email already in use');
-            }
+    updateProfile = async (userId: number, password?: string): Promise<void> => {
+        if (!password) {
+            throw new Error('Password is required');
         }
 
         let hashedPassword;
-        if (password) {
-            if (password.length < 8) {
-                throw new Error('Password must be at least 8 characters');
-            }
-            hashedPassword = await this.bcryptService.hash(password);
+        if (password.length < 8) {
+            throw new Error('Password must be at least 8 characters');
         }
+        hashedPassword = await this.bcryptService.hash(password);
 
-        await this.authRepo.updateProfile(userId, email, hashedPassword);
+        await this.authRepo.updateProfile(userId, hashedPassword);
     }
 }

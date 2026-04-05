@@ -36,15 +36,10 @@ export class AuthRepository {
         return result.affectedRows
     }
 
-    updateProfile = async (userId: number, email?: string, password?: string): Promise<number> => {
+    updateProfile = async (userId: number, password?: string): Promise<number> => {
         let query = 'UPDATE users SET ';
         const params: any[] = [];
         const updates: string[] = [];
-
-        if (email) {
-            updates.push('email = ?');
-            params.push(email.trim().toLowerCase());
-        }
 
         if (password) {
             updates.push('password = ?');

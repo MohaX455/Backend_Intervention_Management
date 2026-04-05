@@ -8,18 +8,19 @@ export class ClientRepository {
         userId: number,
         client_type: 'individual' | 'company',
         phone: string,
-        address: string
+        address: string,
+        createdBySecretaryId: number
     ): Promise<void> => {
 
         const [result] = await connection.execute(
-            `INSERT INTO clients (user_id, client_type, phone, address) VALUES (?, ?, ?, ?)`,
-            [userId, client_type, phone, address]
+            `INSERT INTO clients (user_id, client_type, phone, address, created_by) VALUES (?, ?, ?, ?, ?)`,
+            [userId, client_type, phone, address, createdBySecretaryId]
         ) as [ResultSetHeader, any];
     }
 
     getClients = async (limit?: number) => {
         let query = `
-        SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address
+        SELECT u.id, u.username, u.email, c.client_type, c.phone, c.address, c.created_by
         FROM clients c
         JOIN users u ON u.id = c.user_id
         ORDER BY u.id DESC
@@ -34,7 +35,7 @@ export class ClientRepository {
 
     getClientById = async (id: number) => {
         const [rows]: any = await pool.execute(
-            `SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address
+            `SELECT u.id, u.username, u.email, u.status, c.client_type, c.phone, c.address, c.created_by
              FROM clients c
              JOIN users u ON u.id = c.user_id
              WHERE u.id = ?`,
@@ -47,15 +48,36 @@ export class ClientRepository {
     updateClientWithConnection = async (
         connection: any,
         id: number,
-        client_type: string,
-        phone: string,
-        address: string
+        client_type?: string,
+        phone?: string,
+        address?: string
     ) => {
+        const updates = [];
+        const values = [];
 
-        await connection.execute(
-            `UPDATE clients SET client_type = ?, phone = ?, address = ? WHERE user_id = ?`,
-            [client_type, phone, address, id]
-        )
+        if (client_type !== undefined) {
+            updates.push('client_type = ?');
+            values.push(client_type);
+        }
+
+        if (phone !== undefined) {
+            updates.push('phone = ?');
+            values.push(phone);
+        }
+
+        if (address !== undefined) {
+            updates.push('address = ?');
+            values.push(address);
+        }
+
+        if (updates.length === 0) {
+            return; // Nothing to update
+        }
+
+        const query = `UPDATE clients SET ${updates.join(', ')} WHERE user_id = ?`;
+        values.push(id);
+
+        await connection.execute(query, values);
     }
 
     deleteClientWithConnection = async (connection: any, id: number) => {

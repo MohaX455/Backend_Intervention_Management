@@ -1,9 +1,9 @@
-// modules/interventions/InterventionService.ts
-import { InterventionRepository } from "./IntRepository.js";
+// modules/interventions/DemandeIntService.ts
+import { DemandeIntRepository } from "./DemandeIntRepository.js";
 import { InterventionRow } from "../../types/int.types.js";
 
-export class InterventionService {
-    constructor(private interventionRepo: InterventionRepository) {}
+export class DemandeIntService {
+    constructor(private interventionRepo: DemandeIntRepository) { }
 
     createIntervention = async (
         clientId: number,
@@ -13,14 +13,12 @@ export class InterventionService {
         priority: 'low' | 'normal' | 'high' | 'urgent',
         interventionAddress: string,
         latitude: number | null,
-        longitude: number | null,
-        scheduledStart: Date | null,
-        scheduledEnd: Date | null
+        longitude: number | null
     ) => {
         if (!clientId || !createdBy || !title || !description) {
             throw new Error("Missing required fields");
         }
-        return await this.interventionRepo.create(clientId, createdBy, title, description, priority, interventionAddress, latitude, longitude, scheduledStart, scheduledEnd);
+        return await this.interventionRepo.create(clientId, createdBy, title, description, priority, interventionAddress, latitude, longitude);
     }
 
     getAllInterventions = async (): Promise<InterventionRow[]> => {
@@ -37,16 +35,20 @@ export class InterventionService {
         return intervention;
     }
 
+    getAllAssignments = async () => {
+        return await this.interventionRepo.getAllAssignments();
+    }
+
     assignTechnician = async (interventionId: number, userId: number) => {
         return await this.interventionRepo.assignTechnician(interventionId, userId);
     }
 
     startIntervention = async (interventionId: number) => {
-        return await this.interventionRepo.setStarted(interventionId, new Date());
+        return await this.interventionRepo.setStarted(interventionId);
     }
 
     completeIntervention = async (interventionId: number) => {
-        return await this.interventionRepo.setCompleted(interventionId, new Date());
+        return await this.interventionRepo.setCompleted(interventionId);
     }
 
     updateIntervention = async (
@@ -57,17 +59,35 @@ export class InterventionService {
         priority: 'low' | 'normal' | 'high' | 'urgent',
         interventionAddress: string,
         latitude: number | null,
-        longitude: number | null,
-        scheduledStart: Date | null,
-        scheduledEnd: Date | null
+        longitude: number | null
     ) => {
         if (!clientId || !title || !description) {
             throw new Error("Missing required fields");
         }
-        return await this.interventionRepo.update(id, clientId, title, description, priority, interventionAddress, latitude, longitude, scheduledStart, scheduledEnd);
+        return await this.interventionRepo.update(id, clientId, title, description, priority, interventionAddress, latitude, longitude);
     }
 
     deleteIntervention = async (id: number) => {
         return await this.interventionRepo.delete(id);
+    }
+
+    getStats = async () => {
+        const totalInterventions = await this.interventionRepo.getTotalInterventions();
+        const availableTechnicians = await this.interventionRepo.getAvailableTechniciansCount();
+        const newInterventions = await this.interventionRepo.getNewInterventionsCount();
+        const pendingInterventions = await this.interventionRepo.getPendingInterventionsCount();
+        const recentWeekInterventions = await this.interventionRepo.getRecentWeekInterventionsCount();
+
+        return {
+            totalInterventions,
+            availableTechnicians,
+            newInterventions,
+            pendingInterventions,
+            recentWeekInterventions
+        };
+    }
+
+    getAvailableTechnicians = async () => {
+        return await this.interventionRepo.getAvailableTechnicians();
     }
 }

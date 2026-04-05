@@ -87,6 +87,20 @@ export class UserService {
         }
     }
 
+    // Update user status
+    updateUserStatus = async (id: number, status: string): Promise<void> => {
+        if (id == null || !status?.trim()) {
+            throw new Error('Invalid input data')
+        }
+
+        const existingUser = await this.userRepository.findById(id)
+        if (!existingUser) {
+            throw new Error('User not found')
+        }
+
+        await this.userRepository.updateUserStatus(id, status.trim())
+    }
+
     // Delete user
     deleteUser = async (id: number): Promise<void> => {
         const existingUser = await this.userRepository.findById(id)
