@@ -1,9 +1,8 @@
 import { UserRepository } from "./UserRepository.js";
 import { generateToken } from "../../shared/utils/tokenGenerator.js";
 import { EmailService } from "../../shared/utils/email.js";
-import { getIO } from "../../socket/socket.js";
-import { UserRow } from "../../types/user.types.js";
-import { BcryptService } from "../../shared/utils/BcryptService.js";
+import { AppError } from "../../shared/errors/AppError.js";
+import { UserResponseDto } from "../../types/user.types.js";
 
 export class UserService {
     constructor(
@@ -11,102 +10,157 @@ export class UserService {
         private emailService: EmailService,
     ) { }
 
-    // Create User
-    createUser = async (name: string, email: string, roleId: number): Promise<void> => {
+    private createInvitationLink(token: string) {
+        return `${process.env.FRONTEND_URL}/set-password.html?token=${token}`;
+    }
 
+    private mapUserToResponse(user: { id: number; name: string; email: string; role_id: number; status: string; created_at?: Date | string }): UserResponseDto {
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role_id: user.role_id,
+            status: user.status,
+            created_at: user.created_at ? new Date(user.created_at).toISOString() : undefined,
+        };
+    }
+
+    createUser = async (name: string, email: string, roleId: number): Promise<UserResponseDto> => {
         if (!name || !email || !roleId) {
-            throw new Error('Name, email and roleId are required')
+            throw new AppError('Name, email and roleId are required.', 400);
         }
 
-        const lowerEmail = email.toLowerCase()
+        if (typeof roleId !== 'number' || ![2, 3].includes(roleId)) {
+            throw new AppError('Role must be Technician or Secretary.', 400);
+        }
 
-        const existingUser = await this.userRepository.findByEmail(lowerEmail)
+        const lowerEmail = email.toLowerCase().trim();
+        if (!lowerEmail) {
+            throw new AppError('Email is required.', 400);
+        }
+
+        const existingUser = await this.userRepository.findByEmail(lowerEmail);
         if (existingUser) {
-            throw new Error('User with this email already exists')
+            throw new AppError('A user with this email already exists.', 409);
         }
 
-        const token = generateToken()
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+        const token = generateToken();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-        const userId = await this.userRepository.createUser(name, lowerEmail, roleId, token, expiresAt);
+        const userId = await this.userRepository.createUser(name.trim(), lowerEmail, roleId, token, expiresAt, 'Invited');
 
-        // Send invitation email
-        const link = `${process.env.FRONTEND_URL}/set-password.html?token=${token}`;
-        const emailSubject = 'You are invited to join our app'
+        const link = this.createInvitationLink(token);
+        const emailSubject = 'You are invited to join our app';
         const emailBody = `
             <p>Hello,</p>
             <p>You have been invited to join our app. Please click the link below to accept the invitation and set your password:</p>
             <a href="${link}">Accept Invitation</a>
             <p>This link will expire in 24 hours.</p>
-        `
+        `;
 
-        const io = getIO();
-        io.emit("newUser", {
+        await this.emailService.sendEmail(lowerEmail, emailSubject, emailBody);
+
+        return this.mapUserToResponse({
             id: userId,
-            name: name,
+            name: name.trim(),
             email: lowerEmail,
             role_id: roleId,
-            isActive: existingUser
+            status: 'invited',
+            created_at: new Date(),
         });
-
-        await this.emailService.sendEmail(lowerEmail, emailSubject, emailBody)
     }
 
-    // Get users
-    getUsers = async (): Promise<UserRow[]> => {
-        return await this.userRepository.getUsers()
+    resendInvitation = async (id: number): Promise<UserResponseDto> => {
+        if (!id || Number.isNaN(id)) {
+            throw new AppError('Invalid user id for invitation resend.', 400);
+        }
+
+        const user = await this.userRepository.findById(id);
+        if (!user) {
+            throw new AppError('User not found.', 404);
+        }
+
+        const normalizedStatus = String(user.status || '').trim().toLowerCase();
+        if (normalizedStatus !== 'Invited') {
+            throw new AppError('Only invited users can receive a new invitation.', 400);
+        }
+
+        const token = generateToken();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await this.userRepository.updateInvitationToken(id, token, expiresAt);
+
+        const link = this.createInvitationLink(token);
+        const emailSubject = 'Your invitation has been resent';
+        const emailBody = `
+            <p>Hello,</p>
+            <p>Your invitation has been resent. Please click the link below to set your password:</p>
+            <a href="${link}">Accept Invitation</a>
+            <p>This link will expire in 24 hours.</p>
+        `;
+
+        await this.emailService.sendEmail(user.email, emailSubject, emailBody);
+
+        return this.mapUserToResponse(user);
     }
 
-    // Update user
+    getUsers = async (): Promise<UserResponseDto[]> => {
+        const users = await this.userRepository.getUsers();
+        return users.map((user) => this.mapUserToResponse(user));
+    }
+
     updateUser = async (id: number, name: string, email: string, roleId: number): Promise<void> => {
-
-        // Validation stricte
-        if (id == null || !name?.trim() || !email?.trim() || roleId == null) {
-            throw new Error('Invalid input data')
+        if (!id || !name?.trim() || !email?.trim() || !roleId) {
+            throw new AppError('Invalid input data.', 400);
         }
 
-        const lowerEmail = email.toLowerCase()
+        if (!Number.isInteger(id) || ![2, 3].includes(roleId)) {
+            throw new AppError('Invalid role or user ID.', 400);
+        }
 
-        // Vérifier que l'utilisateur existe
-        const existingUser = await this.userRepository.findById(id)
+        const lowerEmail = email.toLowerCase().trim();
+        const existingUser = await this.userRepository.findById(id);
         if (!existingUser) {
-            throw new Error('User not found')
+            throw new AppError('User not found.', 404);
         }
 
-        // Tenter l'update
         try {
-            await this.userRepository.updateUser(id, name.trim(), lowerEmail.trim(), roleId)
+            await this.userRepository.updateUser(id, name.trim(), lowerEmail, roleId);
         } catch (error: any) {
-
-            // Gestion propre de l'unicité email
             if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
-                throw new Error('Email already exists')
+                throw new AppError('Email already exists.', 409);
             }
-
-            throw error
+            throw new AppError('Unable to update user.', 500);
         }
     }
 
-    // Update user status
     updateUserStatus = async (id: number, status: string): Promise<void> => {
-        if (id == null || !status?.trim()) {
-            throw new Error('Invalid input data')
+        if (!id || !status?.trim()) {
+            throw new AppError('Invalid input data.', 400);
         }
 
-        const existingUser = await this.userRepository.findById(id)
+        const normalized = String(status).trim().toLowerCase();
+        if (!['active', 'inactive'].includes(normalized)) {
+            throw new AppError('Status must be Active or Inactive.', 400);
+        }
+
+        const existingUser = await this.userRepository.findById(id);
         if (!existingUser) {
-            throw new Error('User not found')
+            throw new AppError('User not found.', 404);
         }
 
-        await this.userRepository.updateUserStatus(id, status.trim())
+        await this.userRepository.updateUserStatus(id, normalized);
     }
 
-    // Delete user
     deleteUser = async (id: number): Promise<void> => {
-        const existingUser = await this.userRepository.findById(id)
-        if (!existingUser) {
-            throw new Error('User not found !')
+        if (!id || Number.isNaN(id)) {
+            throw new AppError('Invalid user id.', 400);
         }
-        await this.userRepository.deleteUser(id)
+
+        const existingUser = await this.userRepository.findById(id);
+        if (!existingUser) {
+            throw new AppError('User not found.', 404);
+        }
+
+        await this.userRepository.deleteUser(id);
     }
 }
