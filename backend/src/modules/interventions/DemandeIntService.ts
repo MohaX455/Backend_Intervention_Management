@@ -76,12 +76,14 @@ export class DemandeIntService {
         const availableTechnicians = await this.interventionRepo.getAvailableTechniciansCount();
         const newInterventions = await this.interventionRepo.getNewInterventionsCount();
         const pendingInterventions = await this.interventionRepo.getPendingInterventionsCount();
+        const recentWeekInterventions = await this.interventionRepo.getRecentWeekInterventionsCount();
 
         return {
             totalInterventions,
             availableTechnicians,
             newInterventions,
-            pendingInterventions
+            pendingInterventions,
+            recentWeekInterventions
         };
     }
 

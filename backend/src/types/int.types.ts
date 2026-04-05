@@ -6,7 +6,7 @@ export type InterventionRow = RowDataPacket & {
     created_by: number;
     title: string;
     description: string;
-    status: 'created' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+    status: 'created' | 'validated' | 'cancelled';
     priority: 'low' | 'normal' | 'high' | 'urgent';
     intervention_address: string;
     latitude: number | null;

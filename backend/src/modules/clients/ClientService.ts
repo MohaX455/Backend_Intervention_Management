@@ -118,11 +118,12 @@ export class ClientService {
 
     updateClient = async (
         id: number,
-        name: string,
-        email: string,
-        client_type: string,
-        phone: string,
-        address: string
+        name?: string,
+        email?: string,
+        client_type?: string,
+        phone?: string,
+        address?: string,
+        status?: string
     ) => {
 
         const connection = await pool.getConnection()
@@ -131,6 +132,10 @@ export class ClientService {
             await connection.beginTransaction()
 
             await this.userRepo.updateUserWithConnection(connection, id, name, email)
+
+            if (status) {
+                await this.userRepo.updateUserStatusWithConnection(connection, id, status)
+            }
 
             await this.clientRepo.updateClientWithConnection(connection, id, client_type, phone, address)
 

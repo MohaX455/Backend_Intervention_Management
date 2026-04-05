@@ -18,11 +18,12 @@ export class AuthController {
             const cookieConfig = {
                 httpOnly: true,
                 sameSite: "lax" as const,
-                maxAge: 86400000 // 24 hours in ms
+                secure: false,
+                path: '/'
             };
 
-            res.cookie("token", token, { ...cookieConfig, secure: false });
-            res.cookie("user_role", roleId, { ...cookieConfig, httpOnly: false, secure: false });
+            res.cookie("token", token, { ...cookieConfig });
+            res.cookie("user_role", roleId, { ...cookieConfig, httpOnly: false });
 
             res.status(200).json({
                 message: "Login successful",
@@ -50,7 +51,8 @@ export class AuthController {
         const cookieConfig = {
             httpOnly: true,
             sameSite: "lax" as const,
-            secure: false
+            secure: false,
+            path: '/'
         };
 
         res.clearCookie("token", cookieConfig);
@@ -83,8 +85,8 @@ export class AuthController {
                 return res.status(401).json({ message: "Unauthorized" });
             }
 
-            const { email, password } = req.body;
-            await this.authService.updateProfile(user.id, email, password);
+            const { password } = req.body;
+            await this.authService.updateProfile(user.id, password);
             res.json({ message: "Profile updated successfully" });
         } catch (error: any) {
             logger.error(error);

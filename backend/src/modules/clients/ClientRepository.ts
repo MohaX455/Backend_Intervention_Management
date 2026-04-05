@@ -48,15 +48,36 @@ export class ClientRepository {
     updateClientWithConnection = async (
         connection: any,
         id: number,
-        client_type: string,
-        phone: string,
-        address: string
+        client_type?: string,
+        phone?: string,
+        address?: string
     ) => {
+        const updates = [];
+        const values = [];
 
-        await connection.execute(
-            `UPDATE clients SET client_type = ?, phone = ?, address = ? WHERE user_id = ?`,
-            [client_type, phone, address, id]
-        )
+        if (client_type !== undefined) {
+            updates.push('client_type = ?');
+            values.push(client_type);
+        }
+
+        if (phone !== undefined) {
+            updates.push('phone = ?');
+            values.push(phone);
+        }
+
+        if (address !== undefined) {
+            updates.push('address = ?');
+            values.push(address);
+        }
+
+        if (updates.length === 0) {
+            return; // Nothing to update
+        }
+
+        const query = `UPDATE clients SET ${updates.join(', ')} WHERE user_id = ?`;
+        values.push(id);
+
+        await connection.execute(query, values);
     }
 
     deleteClientWithConnection = async (connection: any, id: number) => {

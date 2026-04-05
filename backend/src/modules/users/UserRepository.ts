@@ -77,13 +77,41 @@ export class UserRepository {
     updateUserWithConnection = async (
         connection: any,
         id: number,
-        name: string,
-        email: string
+        name?: string,
+        email?: string
+    ) => {
+        const updates = [];
+        const values = [];
+
+        if (name !== undefined) {
+            updates.push('username = ?');
+            values.push(name);
+        }
+
+        if (email !== undefined) {
+            updates.push('email = ?');
+            values.push(email);
+        }
+
+        if (updates.length === 0) {
+            return; // Nothing to update
+        }
+
+        const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+        values.push(id);
+
+        await connection.execute(query, values);
+    }
+
+    updateUserStatusWithConnection = async (
+        connection: any,
+        id: number,
+        status: string
     ) => {
 
         await connection.execute(
-            `UPDATE users SET username = ?, email = ? WHERE id = ?`,
-            [name, email, id]
+            `UPDATE users SET status = ? WHERE id = ?`,
+            [status, id]
         )
     }
 

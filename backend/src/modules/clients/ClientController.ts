@@ -77,9 +77,9 @@ export class ClientController {
 
     updateClient = async (req: Request, res: Response) => {
         const id = Number(req.params.id)
-        const { name, email, client_type, phone, address } = req.body
+        const { name, email, client_type, phone, address, status } = req.body
 
-        await this.clientService.updateClient(id, name, email, client_type, phone, address)
+        await this.clientService.updateClient(id, name, email, client_type, phone, address, status)
 
         res.json({ message: 'Client updated' })
     }

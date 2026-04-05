@@ -131,10 +131,7 @@ export class DemandeIntRepository {
         longitude: number | null
     ): Promise<number> => {
         const [result] = await pool.execute<ResultSetHeader>(
-            `UPDATE demandeInterventions 
-            SET client_id = ?, title = ?, description = ?, priority = ?, 
-                intervention_address = ?, latitude = ?, longitude = ?
-            WHERE id = ?`,
+            'UPDATE demandeInterventions SET client_id = ?, title = ?, description = ?, priority = ?, intervention_address = ?, latitude = ?, longitude = ? WHERE id = ?',
             [clientId, title, description, priority, interventionAddress, latitude, longitude, id]
         );
         return result.affectedRows;
@@ -157,31 +154,38 @@ export class DemandeIntRepository {
 
     getAvailableTechniciansCount = async (): Promise<number> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM technician_profiles WHERE available = 1'
+            'SELECT COUNT(*) as count FROM technician_profiles WHERE availability = 1'
         );
         return (rows[0] as { count: number }).count || 0;
     }
 
     getNewInterventionsCount = async (): Promise<number> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM demandeInterventions WHERE status = "pending"'
+            'SELECT COUNT(*) as count FROM demandeInterventions WHERE status = "created"'
         );
         return (rows[0] as { count: number }).count || 0;
     }
 
     getPendingInterventionsCount = async (): Promise<number> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM demandeInterventions WHERE status IN ("assigned", "in_progress")'
+            'SELECT COUNT(*) as count FROM demandeInterventions WHERE status = "validated"'
+        );
+        return (rows[0] as { count: number }).count || 0;
+    }
+
+    getRecentWeekInterventionsCount = async (): Promise<number> => {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+            'SELECT COUNT(*) as count FROM demandeInterventions WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)'
         );
         return (rows[0] as { count: number }).count || 0;
     }
 
     getAvailableTechnicians = async (): Promise<Array<{ id: number; name: string; specialization: string }>> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            `SELECT tp.user_id as id, u.username as name, tp.specialization
+            `SELECT tp.technician_id as id, u.username as name, tp.speciality as specialization
             FROM technician_profiles tp
-            JOIN users u ON tp.user_id = u.id
-            WHERE tp.available = 1`
+            JOIN users u ON tp.technician_id = u.id
+            WHERE tp.availability = 1`
         );
         return rows as Array<{ id: number; name: string; specialization: string }>;
     }
