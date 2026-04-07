@@ -87,7 +87,8 @@ export const createApp = () => {
     // --- Montage des routes avec injection ---
     app.use("/api/auth", authRoutes(authController, authMiddleware));
     app.use("/api/secretary", clientRoutes(clientController, authMiddleware));
-    app.use("/api/admin", userRoutes(userController, authMiddleware));
+    app.use("/api/admin/users", userRoutes(userController, authMiddleware));
+    app.use("/api/admin/clients", clientRoutes(clientController, authMiddleware));
     app.use("/api/admin/interventions", adminDemandeIntRoutes(demandeIntController, authMiddleware));
     app.use("/api/interventions", demandeIntRoutes(demandeIntController, authMiddleware));
 

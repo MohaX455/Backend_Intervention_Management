@@ -3,16 +3,34 @@ import { pool } from '../../config/database/mysql.config.js';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { InterventionRow } from '../../types/int.types.js';
 
+export type AdminRequestRow = InterventionRow & {
+    client_name?: string;
+    client_email?: string;
+};
+
+export type TechnicianAvailabilityRow = RowDataPacket & {
+    id: number;
+    name: string;
+    email: string;
+    specialization: string;
+};
+
 export type AssignmentRow = RowDataPacket & {
     id: number;
     demande_id: number;
     statut: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+    request_status?: 'created' | 'validated' | 'cancelled';
     title: string;
+    description: string;
     intervention_address: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    estimated_duration?: number | null;
     client_name?: string;
     client_email?: string;
     technician_name?: string;
     technician_email?: string;
+    support_technicians?: string | null;
     date_start?: Date | null;
     date_end?: Date | null;
     created_at: Date;
@@ -39,8 +57,8 @@ export class DemandeIntRepository {
         return result.insertId;
     }
 
-    findById = async (id: number): Promise<(InterventionRow & { client_name?: string; client_email?: string }) | null> => {
-        const [rows] = await pool.execute<(InterventionRow & { client_name?: string; client_email?: string })[]>(
+    findById = async (id: number): Promise<AdminRequestRow | null> => {
+        const [rows] = await pool.execute<AdminRequestRow[]>(
             `SELECT i.*, u.username AS client_name, u.email AS client_email
             FROM demandeInterventions i
             LEFT JOIN users u ON i.client_id = u.id
@@ -50,7 +68,7 @@ export class DemandeIntRepository {
         return rows[0] || null;
     }
 
-    getAll = async (limit?: number): Promise<Array<InterventionRow & { client_name?: string; client_email?: string }>> => {
+    getAll = async (limit?: number): Promise<AdminRequestRow[]> => {
         let query = `SELECT i.*, u.username AS client_name, u.email AS client_email
             FROM demandeInterventions i
             LEFT JOIN users u ON i.client_id = u.id
@@ -60,31 +78,50 @@ export class DemandeIntRepository {
             query += ` LIMIT ${Number(limit)}`;
         }
 
-        const [rows] = await pool.execute<Array<InterventionRow & { client_name?: string; client_email?: string }>>(query);
+        const [rows] = await pool.execute<AdminRequestRow[]>(query);
         return rows;
     }
 
-    getAllAssignments = async (): Promise<AssignmentRow[]> => {
-        const [rows] = await pool.execute<AssignmentRow[]>(
-            `SELECT i.id,
+    getAllAssignments = async (limit?: number): Promise<AssignmentRow[]> => {
+        let query = `SELECT i.id,
                     i.demande_id,
                     i.statut,
-                    i.date_start,
-                    i.date_end,
+                    d.status AS request_status,
+                    i.planned_start as date_start,
+                    i.estimated_duration,
+                    i.actual_end as date_end,
                     i.created_at,
                     i.updated_at,
                     d.title,
+                    d.description,
                     d.intervention_address,
+                    d.latitude,
+                    d.longitude,
                     u.username AS client_name,
                     u.email AS client_email,
                     t.username AS technician_name,
-                    t.email AS technician_email
+                    t.email AS technician_email,
+                    s.support_technicians
             FROM interventions i
             LEFT JOIN demandeInterventions d ON i.demande_id = d.id
             LEFT JOIN users u ON d.client_id = u.id
-            LEFT JOIN users t ON i.technicien_id = t.id
-            ORDER BY i.created_at DESC`
-        );
+            LEFT JOIN intervention_technicians it ON i.id = it.intervention_id AND it.role = 'lead'
+            LEFT JOIN users t ON it.technician_id = t.id
+            LEFT JOIN (
+                SELECT it.intervention_id,
+                    GROUP_CONCAT(u.username SEPARATOR ', ') AS support_technicians
+                FROM intervention_technicians it
+                JOIN users u ON it.technician_id = u.id
+                WHERE it.role = 'support'
+                GROUP BY it.intervention_id
+            ) s ON s.intervention_id = i.id
+            ORDER BY i.created_at DESC`;
+
+        if (limit && !isNaN(limit) && limit > 0) {
+            query += ` LIMIT ${Number(limit)}`;
+        }
+
+        const [rows] = await pool.execute<AssignmentRow[]>(query);
         return rows;
     }
 
@@ -94,6 +131,92 @@ export class DemandeIntRepository {
             [status, id]
         );
         return result.affectedRows;
+    }
+
+    createPlannedInterventionWithTechnicians = async (
+        demandeId: number,
+        leadId: number,
+        dateStart: string,
+        estimatedDuration: number,
+        assignments: Array<{ technicianId: number; role: 'lead' | 'support' }>
+    ): Promise<number> => {
+        const connection = await pool.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            const [interventionResult] = await connection.execute<ResultSetHeader>(
+                `INSERT INTO interventions (demande_id, planned_start, estimated_duration, statut)
+                VALUES (?, ?, ?, 'planned')`,
+                [demandeId, dateStart, estimatedDuration]
+            );
+
+            const interventionId = interventionResult.insertId;
+            const assignmentRows = assignments.map((assignment) => [
+                interventionId,
+                assignment.technicianId,
+                assignment.role
+            ]);
+
+            if (assignmentRows.length > 0) {
+                await connection.query(
+                    'INSERT INTO intervention_technicians (intervention_id, technician_id, role) VALUES ?',
+                    [assignmentRows]
+                );
+            }
+
+            await connection.execute<ResultSetHeader>(
+                'UPDATE demandeInterventions SET status = "validated" WHERE id = ?',
+                [demandeId]
+            );
+
+            await connection.commit();
+            return interventionId;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    }
+
+    findActiveInterventionByDemandeId = async (demandeId: number): Promise<RowDataPacket | null> => {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+            `SELECT * FROM interventions
+             WHERE demande_id = ?
+               AND statut IN ('planned', 'in_progress')
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [demandeId]
+        );
+        return rows[0] || null;
+    }
+
+    cancelInterventionById = async (id: number): Promise<number> => {
+        const [result] = await pool.execute<ResultSetHeader>(
+            'UPDATE interventions SET statut = "cancelled" WHERE id = ?',
+            [id]
+        );
+        return result.affectedRows;
+    }
+
+    getAvailableTechniciansForWindow = async (startTime: string, bufferEndTime: string): Promise<TechnicianAvailabilityRow[]> => {
+        const [rows] = await pool.execute<TechnicianAvailabilityRow[]>(
+            `SELECT tp.technician_id as id, u.username as name, u.email as email, tp.speciality as specialization
+            FROM technician_profiles tp
+            JOIN users u ON tp.technician_id = u.id
+            WHERE tp.availability = 1
+              AND tp.technician_id NOT IN (
+                SELECT it.technician_id
+                FROM intervention_technicians it
+                JOIN interventions i ON it.intervention_id = i.id
+                WHERE i.statut IN ('planned', 'in_progress')
+                  AND NOT (DATE_ADD(i.planned_start, INTERVAL i.estimated_duration HOUR) < ? OR i.planned_start > ?)
+              )`,
+            [startTime, bufferEndTime]
+        );
+
+        return rows as TechnicianAvailabilityRow[];
     }
 
     assignTechnician = async (interventionId: number, userId: number): Promise<number> => {
@@ -147,7 +270,7 @@ export class DemandeIntRepository {
 
     getTotalInterventions = async (): Promise<number> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM demandeInterventions'
+            'SELECT COUNT(*) as count FROM interventions'
         );
         return (rows[0] as { count: number }).count || 0;
     }
@@ -161,14 +284,28 @@ export class DemandeIntRepository {
 
     getNewInterventionsCount = async (): Promise<number> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM demandeInterventions WHERE status = "created"'
+            'SELECT COUNT(*) as count FROM interventions WHERE statut = "planned"'
         );
         return (rows[0] as { count: number }).count || 0;
     }
 
     getPendingInterventionsCount = async (): Promise<number> => {
         const [rows] = await pool.execute<RowDataPacket[]>(
-            'SELECT COUNT(*) as count FROM demandeInterventions WHERE status = "validated"'
+            'SELECT COUNT(*) as count FROM interventions WHERE statut = "in_progress"'
+        );
+        return (rows[0] as { count: number }).count || 0;
+    }
+
+    getCancelledInterventionsCount = async (): Promise<number> => {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+            'SELECT COUNT(*) as count FROM interventions WHERE statut = "cancelled"'
+        );
+        return (rows[0] as { count: number }).count || 0;
+    }
+
+    getCompletedInterventionsCount = async (): Promise<number> => {
+        const [rows] = await pool.execute<RowDataPacket[]>(
+            'SELECT COUNT(*) as count FROM interventions WHERE statut = "completed"'
         );
         return (rows[0] as { count: number }).count || 0;
     }
